@@ -45,8 +45,8 @@ class App(pyglet.window.Window):
 
         self.includes = {}
 
-        for file in os.listdir("Shaders"):
-            with open("Shaders\\" + file, "r") as f:
+        for file in os.listdir("src\\Shaders"):
+            with open("src\\Shaders\\" + file, "r") as f:
                 if file == "vertex.glsl":
                     self.vertex_shader = f.read()
                 elif file == "fragment.glsl":
