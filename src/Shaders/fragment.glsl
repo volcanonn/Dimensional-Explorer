@@ -19,7 +19,7 @@ out vec4 f_color;
 
 #include "utils.glsl"
 #include "smoothing.glsl"
-#include "mandelbrot.glsl"
+#include "functions.glsl"
 #include "colormap.glsl"
 
 void main() {
@@ -37,7 +37,10 @@ void main() {
 
     vec2 position = (corrected_uv * u_zoom) + u_pan;
 
-    vec2 funcOutput = Mandelbrot(position, 4, u_max_iterations);
+    // vec2 funcOutput = Mandelbrot(position, 4, u_max_iterations);
+    //vec2 funcOutput = SimpleWave(position);
+    //vec2 funcOutput = RadialWave(position);
+    vec2 funcOutput = Voronoi(position, corrected_uv);
     
     float SmoothedOutput = getSmoothColor(funcOutput, u_color_frequency);
     f_color = colormap_psychedelic(SmoothedOutput);

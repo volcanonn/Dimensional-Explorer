@@ -133,7 +133,6 @@ class App(pyglet.window.Window):
         imgui.new_frame()
         imgui.begin("Fractal Controls")
         
-        # ... (slider code that sets self.fractal_dirty = True) ...
         c1, self.zoom = imgui.slider_float("Zoom", self.zoom, 0.001, 10.0)
         c2, self.pan_x = imgui.slider_float("Pan X", self.pan_x, -2.0, 1.0)
         c3, self.pan_y = imgui.slider_float("Pan Y", self.pan_y, -1.5, 1.5)

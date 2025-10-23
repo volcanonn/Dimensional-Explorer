@@ -11,3 +11,7 @@ vec2 complexPow(vec2 num, vec2 exponent) {
 
 	return vec2(newR * cos(newTheta), newR * sin(newTheta));
 }
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
