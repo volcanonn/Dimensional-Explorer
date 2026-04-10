@@ -1,0 +1,1 @@
+from .mandelbrots import julia, mandelbrot
