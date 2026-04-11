@@ -1,5 +1,5 @@
 import taichi as ti
-from .mandelbrots import mandelbrot_core
+from funcs import *
 import config
 
 @ti.kernel
@@ -23,4 +23,4 @@ def nd_slice(
         math_y = screen_y * inv_zoom
         
         pos_nd = origin + (math_x * right) + (math_y * up)
-        pixels[i, j] = mandelbrot_core(pos_nd, max_iter, color_freq)
+        pixels[i, j] = conic_core(pos_nd, max_iter, color_freq)

@@ -1,5 +1,7 @@
 import taichi as ti
+import taichi.math as tm
 from . import f64_math
+import config
 
 def format_time(ns: int) -> str:
     if ns >= 1_000_000_000:
@@ -11,39 +13,60 @@ def format_time(ns: int) -> str:
     else:
         return f"{ns:.2f} ns"
 
+# --- SMART DISPATCHERS ---
 @ti.func
-def screen_to_math(i, j, width, height, zoom, pan_x, pan_y):
-    screen_x = ti.cast(i, float) - ti.cast(width, float) / 2.0
-    screen_y = ti.cast(j, float) - ti.cast(height, float) / 2.0
-    
-    math_x = (screen_x / zoom) + pan_x
-    math_y = (screen_y / zoom) + pan_y
-    
-    return ti.Vector([math_x, math_y])
+def smart_sin(x):
+    res = x
+    if ti.static(config.USE_F64):
+        res = f64_math.f64_sin(x)
+    else:
+        res = tm.sin(x)
+    return res
 
 @ti.func
-def quat_sqr(q):
-    """Squares a 4D Quaternion: (x^2 - y^2 - z^2 - w^2, 2xy, 2xz, 2xw)"""
-    x, y, z, w = q[0], q[1], q[2], q[3]
-    return ti.Vector([
-        x*x - y*y - z*z - w*w,
-        2.0 * x * y,
-        2.0 * x * z,
-        2.0 * x * w
-    ])
+def smart_cos(x):
+    res = x
+    if ti.static(config.USE_F64):
+        res = f64_math.f64_cos(x)
+    else:
+        res = tm.cos(x)
+    return res
 
 @ti.func
-def rotate_4d(p, angle, axis1: ti.template(), axis2: ti.template()):
-    """Rotates a 4D vector along a specific 2D plane (e.g., XW or YZ)"""
-    c = f64_math.f64_cos(angle)
-    s = f64_math.f64_sin(angle)
-    
-    # We do this to avoid modifying the vector while we are reading it
-    p_new = p
-    p_new[axis1] = p[axis1] * c - p[axis2] * s
-    p_new[axis2] = p[axis1] * s + p[axis2] * c
-    return p_new
+def smart_exp(x):
+    res = x
+    if ti.static(config.USE_F64):
+        res = f64_math.f64_exp(x)
+    else:
+        res = tm.exp(x)
+    return res
 
+@ti.func
+def smart_log(x):
+    res = x
+    if ti.static(config.USE_F64):
+        res = f64_math.f64_log(x)
+    else:
+        res = tm.log(x)
+    return res
+
+@ti.func
+def smart_atan2(y, x):
+    res = y
+    if ti.static(config.USE_F64):
+        res = f64_math.f64_atan2(y, x)
+    else:
+        res = tm.atan2(y, x)
+    return res
+
+@ti.func
+def random(st):
+    """64-bit Safe GLSL pseudo-random generator"""
+    dot_product = st[0] * 12.9898 + st[1] * 78.233
+    val = smart_sin(dot_product) * 43758.5453123
+    return val - ti.floor(val) 
+
+# --- COMPLEX MATH ---
 @ti.func
 def complex_mul(a, b):
     return ti.Vector([a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]])
@@ -52,9 +75,11 @@ def complex_mul(a, b):
 def complex_pow(z, w):
     result = ti.Vector([ti.cast(0.0, float), ti.cast(0.0, float)])
     
+    # Epsilon Check for Integer Fast-Path
     is_integer = (ti.abs(w[1]) < 1e-4) and (ti.abs(w[0] - ti.round(w[0])) < 1e-4)
     
     if is_integer:
+        # Fast-path for integers (Pure multiplication)
         n = ti.cast(ti.abs(ti.round(w[0])), ti.i32)
         temp = ti.Vector([ti.cast(1.0, float), ti.cast(0.0, float)])
         for _ in range(n):
@@ -65,19 +90,20 @@ def complex_pow(z, w):
             temp = ti.Vector([temp[0]/denom, -temp[1]/denom])
         result = temp
     else:
-        # Fractional powers
+        # Fractional powers using SMART hardware routing!
         r = ti.sqrt(z[0]**2 + z[1]**2)
         if r > 1e-15:
-            theta = f64_math.f64_atan2(z[1], z[0])
-            ln_r = f64_math.f64_log(r)
+            # Replaced all f64_math calls with smart_* calls!
+            theta = smart_atan2(z[1], z[0])
+            ln_r = smart_log(r)
             
             A = w[0] * ln_r - w[1] * theta
             B = w[0] * theta + w[1] * ln_r
             
-            exp_A = f64_math.f64_exp(A)
+            exp_A = smart_exp(A)
             result = ti.Vector([
-                exp_A * f64_math.f64_cos(B), 
-                exp_A * f64_math.f64_sin(B)
+                exp_A * smart_cos(B), 
+                exp_A * smart_sin(B)
             ])
             
     return result

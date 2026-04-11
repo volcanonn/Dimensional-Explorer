@@ -5,7 +5,6 @@ import collections
 
 import config
 import utils
-import funcs
 
 ti.init(arch=ti.vulkan, default_fp=config.MATH_TYPE)
 
@@ -70,7 +69,7 @@ class App:
             right_vec = config.vecND(right)
             up_vec = config.vecND(up)
             
-            funcs.nd_slice(
+            utils.nd_slice(
                 self.pixels, 
                 origin_vec, right_vec, up_vec, 
                 self.zoom, self.max_iter, self.color_freq
@@ -106,7 +105,7 @@ class App:
             with self.gui.sub_window("N-D Translations", 0.02, 0.28, 0.25, 0.25):
                 self.gui.text("(Ctrl+Click to type exact numbers!)")
                 for i in range(config.DIMENSIONS):
-                    name =["X(c)", "Y(c)", "Z(z)", "W(z)", "V(e)", "U(e)"][i] if i < 6 else f"Dim {i}"
+                    name =["X", "Y", "Z", "W", "V", "U"][i] if i < 6 else f"D{i}"
                     self.translations[i] = self.smart_slider(f"Pos {name}", self.translations[i], -2.0, 2.0)
 
             with self.gui.sub_window("N-D Rotations", 0.02, 0.55, 0.25, 0.43):
