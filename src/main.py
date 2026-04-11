@@ -1,63 +1,43 @@
 import math
 import taichi as ti
-import taichi.math as tm
-import numpy as np
-import os
 import time
-import utils
-import funcs
 import collections
 
-DIMENSIONS = 4
-MIN_DIMENSIONS = 2
-MAX_DIMENSIONS = 10
+import config
+import utils
+import funcs
 
-USE_F64 = False
-
-MATH_TYPE = ti.f64 if USE_F64 else ti.f32
-
-ti.init(arch=ti.vulkan, default_fp=MATH_TYPE)
-
-vecND = ti.types.vector(DIMENSIONS, float)
+ti.init(arch=ti.vulkan, default_fp=config.MATH_TYPE)
 
 @ti.data_oriented
 class App:
     def __init__(self):
-        if DIMENSIONS < MIN_DIMENSIONS or DIMENSIONS > MAX_DIMENSIONS:
-            print("Dimensions out of range!")
-            return
-
-        self.rot_planes = math.comb(DIMENSIONS, 2)
+        self.rot_planes = math.comb(config.DIMENSIONS, 2)
         
-        self.window = ti.ui.Window("N-Dimensional Viewer", (800, 600), vsync=True) # screen size is changed when you use hyprland
+        self.window = ti.ui.Window(f"{config.DIMENSIONS}D Viewer", (1280, 720), vsync=True)
         self.canvas = self.window.get_canvas()
         self.gui = self.window.get_gui()
 
         self.frame_times = collections.deque(maxlen=60)
         self.calc_times = collections.deque(maxlen=60)
         self.last_time = time.perf_counter() 
-
         self.current_shape = (0, 0)
         self.pixels = None
 
         self.zoom = 200.0  
-        self.pan_x = 0.0
-        self.pan_y = 0.0
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.is_dragging = False
         self.last_mouse_x = 0.0
         self.last_mouse_y = 0.0
 
-        self.translations = [0.0] * DIMENSIONS
+        self.translations = [0.0] * config.DIMENSIONS
         
-        self.planes = [(i, j) for i in range(DIMENSIONS) for j in range(i + 1, DIMENSIONS)]
+        self.planes =[(i, j) for i in range(config.DIMENSIONS) for j in range(i + 1, config.DIMENSIONS)]
         self.rotations = [0.0] * len(self.planes)
 
         self.max_iter = 100
         self.color_freq = 0.05
-
-        self.camera_data = ti.Vector.field(n=DIMENSIONS, dtype=float, shape=3)
 
     def run(self):
         while self.window.running:
@@ -86,19 +66,14 @@ class App:
             ti.sync() 
             starttime = time.perf_counter_ns()
             
-            origin_vec = vecND(self.translations)
-            right_vec = vecND(right)
-            up_vec = vecND(up)
-            
-            self.camera_data[0] = self.translations
-            self.camera_data[1] = right
-            self.camera_data[2] = up
+            origin_vec = config.vecND(self.translations)
+            right_vec = config.vecND(right)
+            up_vec = config.vecND(up)
             
             funcs.nd_slice(
                 self.pixels, 
-                self.camera_data,
-                self.zoom, self.pan_x, self.pan_y, 
-                self.max_iter, self.color_freq
+                origin_vec, right_vec, up_vec, 
+                self.zoom, self.max_iter, self.color_freq
             )
 
             ti.sync()
@@ -111,7 +86,7 @@ class App:
             self.canvas.set_image(self.pixels)
 
             with self.gui.sub_window("Engine Stats", 0.02, 0.02, 0.3, 0.25):
-                self.gui.text(f"Dimensions: {DIMENSIONS}D")
+                self.gui.text(f"Dimensions: {config.DIMENSIONS}D")
                 self.gui.text(f"Rotation Planes: {self.rot_planes}")
                 self.gui.text(f"FPS: {fps:.1f}")
                 self.gui.text(f"Calc time: {utils.format_time(avg_calc_time)}")
@@ -120,17 +95,17 @@ class App:
                 self.max_iter = self.gui.slider_int("Max Iterations", self.max_iter, 10, 1000)
                 self.color_freq = self.gui.slider_float("Color Freq", self.color_freq, 0.001, 0.5)
 
-                mode_text = "64-bit (Deep Zoom)" if USE_F64 else "32-bit (Max Speed)"
+                mode_text = "64-bit (Deep Zoom)" if config.USE_F64 else "32-bit (Max Speed)"
                 self.gui.text(f"Precision: {mode_text}")
                 
                 if self.gui.button("Reset View"):
                     self.zoom = 200.0
-                    self.translations = [0.0] * DIMENSIONS
+                    self.translations = [0.0] * config.DIMENSIONS
                     self.rotations =[0.0] * len(self.planes)
 
             with self.gui.sub_window("N-D Translations", 0.02, 0.28, 0.25, 0.25):
                 self.gui.text("(Ctrl+Click to type exact numbers!)")
-                for i in range(DIMENSIONS):
+                for i in range(config.DIMENSIONS):
                     name =["X(c)", "Y(c)", "Z(z)", "W(z)", "V(e)", "U(e)"][i] if i < 6 else f"Dim {i}"
                     self.translations[i] = self.smart_slider(f"Pos {name}", self.translations[i], -2.0, 2.0)
 
@@ -150,8 +125,8 @@ class App:
         return value
     
     def get_nd_camera_vectors(self):
-        right = [0.0] * DIMENSIONS; right[0] = 1.0
-        up    = [0.0] * DIMENSIONS; up[1] = 1.0
+        right = [0.0] * config.DIMENSIONS; right[0] = 1.0
+        up    = [0.0] * config.DIMENSIONS; up[1] = 1.0
 
         for angle, (ax1, ax2) in zip(self.rotations, self.planes):
             if angle != 0.0:
@@ -196,7 +171,7 @@ class App:
         self.last_mouse_y = mouse_y
 
         if total_dx != 0.0 or total_dy != 0.0:
-            for i in range(DIMENSIONS):
+            for i in range(config.DIMENSIONS):
                 self.translations[i] += total_dx * right[i] + total_dy * up[i]
 
         zoom_in = self.window.is_pressed('e')
@@ -216,7 +191,7 @@ class App:
             math_x_after = screen_x / self.zoom
             math_y_after = screen_y / self.zoom
             
-            for i in range(DIMENSIONS):
+            for i in range(config.DIMENSIONS):
                 self.translations[i] += (math_x_before - math_x_after) * right[i]
                 self.translations[i] += (math_y_before - math_y_after) * up[i]
 
