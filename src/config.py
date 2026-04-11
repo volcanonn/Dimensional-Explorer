@@ -1,16 +1,7 @@
 import taichi as ti
 
-# ==========================================
-# GENERALIZED N-DIMENSIONAL CONFIGURATION
-# ==========================================
-DIMENSIONS = 3   # Change this to 4, 6, 8, etc!
-MIN_DIMENSIONS = 2
-MAX_DIMENSIONS = 10
+# The maximum size the GPU will ever need to prepare memory for
+MAX_DIMENSIONS = 6
 
-USE_F64 = True
-
-# Export the Math Type so ti.init() can use it
-MATH_TYPE = ti.f64 if USE_F64 else ti.f32
-
-# Dynamically generate the N-Dimensional Vector Type to be shared across all files!
-vecND = ti.types.vector(DIMENSIONS, float)
+# The Master Type used for passing fast registers to the GPU
+vecMAX = ti.types.vector(MAX_DIMENSIONS, ti.f64)
