@@ -106,3 +106,12 @@ def complex_pow(z, w, use_f64: ti.template()):
             ])
 
     return result
+
+@ti.kernel
+def blit_image(dest: ti.template(), src: ti.template(), offset_x: int, offset_y: int):
+    """Copies a mini-viewport directly onto the main screen buffer!"""
+    for i, j in src:
+        di = i + offset_x
+        dj = j + offset_y
+        if 0 <= di < dest.shape[0] and 0 <= dj < dest.shape[1]:
+            dest[di, dj] = src[i, j]

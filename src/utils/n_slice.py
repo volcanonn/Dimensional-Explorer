@@ -11,7 +11,7 @@ def nd_slice(
     zoom: ti.f64,
     max_iter: int,
     color_freq: float,
-    func_idx: ti.template(),  # THE FIX: Using ti.template() unlocks max speed!
+    func_idx: ti.template(),
     use_f64: ti.template(),
     active_dims: ti.template()
 ):
