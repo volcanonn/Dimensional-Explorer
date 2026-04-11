@@ -22,6 +22,29 @@ def screen_to_math(i, j, width, height, zoom, pan_x, pan_y):
     return ti.Vector([math_x, math_y])
 
 @ti.func
+def quat_sqr(q):
+    """Squares a 4D Quaternion: (x^2 - y^2 - z^2 - w^2, 2xy, 2xz, 2xw)"""
+    x, y, z, w = q[0], q[1], q[2], q[3]
+    return ti.Vector([
+        x*x - y*y - z*z - w*w,
+        2.0 * x * y,
+        2.0 * x * z,
+        2.0 * x * w
+    ])
+
+@ti.func
+def rotate_4d(p, angle, axis1: ti.template(), axis2: ti.template()):
+    """Rotates a 4D vector along a specific 2D plane (e.g., XW or YZ)"""
+    c = f64_math.f64_cos(angle)
+    s = f64_math.f64_sin(angle)
+    
+    # We do this to avoid modifying the vector while we are reading it
+    p_new = p
+    p_new[axis1] = p[axis1] * c - p[axis2] * s
+    p_new[axis2] = p[axis1] * s + p[axis2] * c
+    return p_new
+
+@ti.func
 def complex_mul(a, b):
     return ti.Vector([a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]])
 

@@ -1,1 +1,1 @@
-from .mandelbrots import julia, mandelbrot
+from .n_slice import nd_slice

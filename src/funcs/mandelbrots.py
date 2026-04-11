@@ -1,68 +1,38 @@
 import taichi as ti
-import taichi.math as tm
 import utils
 
-@ti.kernel
-def julia(
-    pixels: ti.template(), 
-    zoom: float,
-    pan_x: float,
-    pan_y: float,
-    max_iter: int, 
-    color_freq: float,
-    power: float
-):
-    width = pixels.shape[0]
-    height = pixels.shape[1]
+@ti.func
+def mandelbrot_core(pos_nd: ti.template(), max_iter: int, color_freq: float):
+    """
+    Takes a raw N-Dimensional vector, extracts the variables it specifically needs,
+    runs the iterations, and returns the final RGB color.
+    """
+    N = ti.static(pos_nd.n)
     
-    w = ti.Vector([ti.cast(power, float), ti.cast(0.0, float)])
-
-    c = ti.Vector([ti.cast(0.0, float), ti.cast(0.0, float)])
+    c = ti.Vector([
+        pos_nd[0] if ti.static(N > 0) else 0.0,
+        pos_nd[1] if ti.static(N > 1) else 0.0
+    ])
+    z = ti.Vector([
+        pos_nd[2] if ti.static(N > 2) else 0.0,
+        pos_nd[3] if ti.static(N > 3) else 0.0
+    ])
+    e = ti.Vector([
+        pos_nd[4] if ti.static(N > 4) else 2.0,
+        pos_nd[5] if ti.static(N > 5) else 0.0
+    ])
     
-    for i, j in pixels:  
-        # For a Julia set, the starting Z is the screen's mathematical coordinate
-        z = utils.screen_to_math(i, j, width, height, zoom, pan_x, pan_y)
+    # Run the math iterations specific to this fractal
+    iterations = 0
+    while z[0]**2 + z[1]**2 < 400.0 and iterations < max_iter:
+        z = utils.complex_pow(z, e) + c
+        iterations += 1
         
-        iterations = 0
-        while z[0]**2 + z[1]**2 < 400.0 and iterations < max_iter:
-            # We add our constant 'c' instead of the screen position
-            z = utils.complex_pow(z, w) + c
-            iterations += 1
-            
-        if iterations == max_iter:
-            pixels[i, j] = ti.cast(ti.Vector([0.0, 0.0, 0.0]), ti.f32)
-        else:
-            t = utils.smoothing.simple_smooth(iterations, z[0]**2 + z[1]**2, color_freq)
-            pixels[i, j] = utils.colormap.psychedelic(t)
-
-@ti.kernel
-def mandelbrot(
-    pixels: ti.template(), 
-    zoom: float,
-    pan_x: float,
-    pan_y: float,
-    max_iter: int, 
-    color_freq: float,
-    power: float
-):
-    width = pixels.shape[0]
-    height = pixels.shape[1]
+    color = ti.Vector([0.0, 0.0, 0.0]) # Default to Black (inside the set)
     
-    w = ti.Vector([ti.cast(power, float), ti.cast(0.0, float)])
-    
-    for i, j in pixels:  
-        position = utils.screen_to_math(i, j, width, height, zoom, pan_x, pan_y)
+    if iterations < max_iter:
+        final_mag_sqr = z[0]**2 + z[1]**2
+        t = utils.smoothing.simple_smooth(iterations, final_mag_sqr, color_freq)
+        color = utils.colormap.heledron(t)
         
-        # Ensure z starts in the correct precision to stop warnings
-        z = ti.Vector([ti.cast(0.0, float), ti.cast(0.0, float)])
-        
-        iterations = 0
-        while z[0]**2 + z[1]**2 < 400.0 and iterations < max_iter:
-            z = utils.complex_pow(z, w) + position
-            iterations += 1
-            
-        if iterations == max_iter:
-            pixels[i, j] = ti.cast(ti.Vector([0.0, 0.0, 0.0]), ti.f32)
-        else:
-            t = utils.smoothing.simple_smooth(iterations, z[0]**2 + z[1]**2, color_freq)
-            pixels[i, j] = utils.colormap.psychedelic(t)
+    return ti.cast(color, ti.f32)
