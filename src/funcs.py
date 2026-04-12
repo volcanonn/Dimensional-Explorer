@@ -3,7 +3,7 @@ import utils
 import config
 
 @ti.func
-def mandelbrot_core(pos_nd: ti.template(), max_iter: int, color_freq: float, use_f64: ti.template()):
+def mandelbrot_core(pos_nd: ti.template(), max_iter: int, color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -28,13 +28,13 @@ def mandelbrot_core(pos_nd: ti.template(), max_iter: int, color_freq: float, use
 
     if iterations < max_iter:
         t = utils.smoothing.simple_smooth(iterations, z_vec[0] ** 2 + z_vec[1] ** 2, color_freq)
-        color = utils.colormap.psychedelic(t)
+        color = utils.apply_colormap(t, colormap_idx)
 
     return color
 
 
 @ti.func
-def conic_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template()):
+def conic_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -45,11 +45,11 @@ def conic_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template())
     cone_dist = ti.sqrt(x * x + y * y) - ti.abs(z)
     glow = utils.smart_exp(-ti.abs(cone_dist) * (zero + 10.0 * color_freq), use_f64)
 
-    return utils.colormap.heledron(glow)
+    return utils.apply_colormap(glow, colormap_idx)
 
 
 @ti.func
-def voronoi_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template()):
+def voronoi_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -74,11 +74,11 @@ def voronoi_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(
 
     t = min_dist * (zero + color_freq * 10.0)
     
-    return utils.colormap.heledron(t - ti.floor(t))
+    return utils.apply_colormap(t - ti.floor(t), colormap_idx)
 
 
 @ti.func
-def simple_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template()):
+def simple_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -88,11 +88,11 @@ def simple_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.templ
     val = utils.smart_sin(x, use_f64) + utils.smart_cos(y, use_f64)
     t = ti.abs(val * (zero + color_freq * 2.0))
 
-    return utils.colormap.heledron(t - ti.floor(t))
+    return utils.apply_colormap(t - ti.floor(t), colormap_idx)
 
 
 @ti.func
-def radial_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template()):
+def radial_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -102,11 +102,11 @@ def radial_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.templ
     val = utils.smart_sin(ti.sqrt(x * x + y * y), use_f64)
     t = ti.abs(val * (zero + color_freq * 5.0))
 
-    return utils.colormap.heledron(t - ti.floor(t))
+    return utils.apply_colormap(t - ti.floor(t), colormap_idx)
 
 
 @ti.func
-def paraboloid_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template()):
+def paraboloid_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(), colormap_idx: ti.template()):
     N = ti.static(pos_nd.n)
     zero = pos_nd[0] * 0.0
 
@@ -115,4 +115,4 @@ def paraboloid_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.templa
 
     t = ti.abs((x * y) * (zero + color_freq * 2.0))
 
-    return utils.colormap.heledron(t - ti.floor(t))
+    return utils.apply_colormap(t - ti.floor(t), colormap_idx)

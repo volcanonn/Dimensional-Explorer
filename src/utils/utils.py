@@ -1,6 +1,6 @@
 import taichi as ti
 import taichi.math as tm
-from . import f64_math
+from . import f64_math, colormap
 import config
 
 def format_time(ns: int) -> str:
@@ -115,3 +115,15 @@ def blit_image(dest: ti.template(), src: ti.template(), offset_x: int, offset_y:
         dj = j + offset_y
         if 0 <= di < dest.shape[0] and 0 <= dj < dest.shape[1]:
             dest[di, dj] = src[i, j]
+
+@ti.func
+def apply_colormap(t, colormap_idx: ti.template()):
+    """A zero-overhead compile-time dispatcher for colormaps!"""
+    color = ti.cast(ti.Vector([0.0, 0.0, 0.0]), ti.f32)
+    
+    if ti.static(colormap_idx == 0):
+        color = colormap.heledron(t)
+    elif ti.static(colormap_idx == 1):
+        color = colormap.psychedelic(t)
+        
+    return color

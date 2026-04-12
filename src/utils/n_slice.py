@@ -13,7 +13,8 @@ def nd_slice(
     color_freq: float,
     func_idx: ti.template(),
     use_f64: ti.template(),
-    active_dims: ti.template()
+    active_dims: ti.template(),
+    colormap_idx: ti.template()
 ):
     width = pixels.shape[0]
     height = pixels.shape[1]
@@ -41,17 +42,17 @@ def nd_slice(
         color = ti.cast(ti.Vector([0.0, 0.0, 0.0]), ti.f32)
         
         if ti.static(func_idx == 0):
-            color = mandelbrot_core(pos_nd, max_iter, color_freq, use_f64)
+            color = mandelbrot_core(pos_nd, max_iter, color_freq, use_f64, colormap_idx)
         elif ti.static(func_idx == 1):
-            color = conic_core(pos_nd, color_freq, use_f64)
+            color = conic_core(pos_nd, color_freq, use_f64, colormap_idx)
         elif ti.static(func_idx == 2):
-            color = voronoi_core(pos_nd, color_freq, use_f64)
+            color = voronoi_core(pos_nd, color_freq, use_f64, colormap_idx)
         elif ti.static(func_idx == 3):
-            color = simple_wave_core(pos_nd, color_freq, use_f64)
+            color = simple_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
         elif ti.static(func_idx == 4):
-            color = radial_wave_core(pos_nd, color_freq, use_f64)
+            color = radial_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
         elif ti.static(func_idx == 5):
-            color = paraboloid_core(pos_nd, color_freq, use_f64)
+            color = paraboloid_core(pos_nd, color_freq, use_f64, colormap_idx)
 
         is_crosshair = (ti.abs(screen_x) < 6.0 and ti.abs(screen_y) < 1.0 and ti.abs(screen_x) > 2.0) or \
                        (ti.abs(screen_y) < 6.0 and ti.abs(screen_x) < 1.0 and ti.abs(screen_y) > 2.0)

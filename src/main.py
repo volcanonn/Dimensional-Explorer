@@ -56,6 +56,7 @@ class CameraState:
         self.translations =[0.0] * config.MAX_DIMENSIONS
         self.max_iter = 100
         self.color_freq = 0.05
+        self.colormap_idx = 0
 
         if name == "Mandelbrot":
             self.active_dims = 6
@@ -105,6 +106,10 @@ class App:
         ]
 
         self.func_idx = 0
+
+        self.colormaps = ["Heledron", "Psychedelic"]
+        self.colormap_idx = 0
+
         self.states = [CameraState(name) for name in self.functions]
         
         self.viewports =[]
@@ -168,7 +173,8 @@ class App:
                         self.color_freq,
                         self.func_idx,
                         self.use_f64,
-                        self.active_dims
+                        self.active_dims,
+                        self.colormap_idx
                     )
 
             ti.sync()
@@ -200,6 +206,12 @@ class App:
                     self.save_state()
                     self.func_idx = (self.func_idx + 1) % len(self.functions)
                     self.load_state()
+
+                self.gui.text("")
+                self.gui.text(f"Colormap: {self.colormaps[self.colormap_idx]}")
+                if self.gui.button("Toggle Colormap"):
+                    self.colormap_idx = (self.colormap_idx + 1) % len(self.colormaps)
+                    self.save_state()
 
                 self.gui.text("")
                 self.use_f64 = self.gui.checkbox("64-bit Precision", self.use_f64)
@@ -260,6 +272,7 @@ class App:
         s.color_freq = self.color_freq
         s.use_f64 = self.use_f64
         s.active_dims = self.active_dims
+        s.colormap_idx = self.colormap_idx
 
     def load_state(self):
         s = self.states[self.func_idx]
@@ -272,6 +285,7 @@ class App:
         self.active_dims = s.active_dims
         self.planes = s.planes
         self.use_f64 = s.use_f64
+        self.colormap_idx = s.colormap_idx
 
     def get_nd_basis_matrix(self):
         basis = [[0.0] * config.MAX_DIMENSIONS for _ in range(config.MAX_DIMENSIONS)]
@@ -350,12 +364,8 @@ class App:
 
         if self.window.is_pressed(ti.ui.LMB):
             if self.is_dragging:
-                vp_w = 256.0 if active_vp.idx > 0 else width
-                vp_h = 256.0 if active_vp.idx > 0 else height
-                
-                total_dx -= (mouse_x - self.last_mouse_x) * vp_w / active_vp.zoom
-                total_dy -= (mouse_y - self.last_mouse_y) * vp_h / active_vp.zoom
-                
+                total_dx -= (mouse_x - self.last_mouse_x) * width / active_vp.zoom
+                total_dy -= (mouse_y - self.last_mouse_y) * height / active_vp.zoom
             self.is_dragging = True
         else:
             self.is_dragging = False
