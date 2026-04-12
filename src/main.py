@@ -52,6 +52,8 @@ class Viewport:
 class CameraState:
     def __init__(self, name):
         self.zooms =[200.0] * (config.MAX_DIMENSIONS // 2)
+
+        self.vp_axes =[(i * 2, i * 2 + 1) for i in range(config.MAX_DIMENSIONS // 2)]
         
         self.translations =[0.0] * config.MAX_DIMENSIONS
         self.max_iter = 100
@@ -179,7 +181,6 @@ class App:
 
             ti.sync()
             
-            # --- 3. PICTURE-IN-PICTURE (PiP) BLIT ---
             for vp in self.viewports[1:]:
                 if vp.dim2 < self.active_dims:
                     utils.blit_image(self.viewports[0].pixels, vp.pixels, vp.px_x, vp.px_y)
@@ -247,12 +248,27 @@ class App:
                         )
 
             if self.active_dims > 2:
-                with self.gui.sub_window("Viewports Zoom", 0.02, 0.91, 0.25, 0.07):
-                    for vp in self.viewports:
+                ui_height = 0.06 + 0.05 * (self.active_dims // 2)
+                
+                with self.gui.sub_window("Viewport Swapper", 0.02, 0.82, 0.25, ui_height):
+                    main_vp = self.viewports[0]
+                    m_name1 = DIM_NAMES[main_vp.dim1]
+                    m_name2 = DIM_NAMES[main_vp.dim2]
+                    
+                    self.gui.text(f"Main [{m_name1}-{m_name2}] Z: {main_vp.zoom:.1e}")
+                    
+                    for vp in self.viewports[1:]:
                         if vp.dim2 < self.active_dims:
                             name1 = DIM_NAMES[vp.dim1]
                             name2 = DIM_NAMES[vp.dim2]
-                            self.gui.text(f"{name1}-{name2} Plane: {vp.zoom:.1e}")
+                            
+                            if self.gui.button(f"Swap [{name1}-{name2}] to Main"):
+                                main_vp.dim1, vp.dim1 = vp.dim1, main_vp.dim1
+                                main_vp.dim2, vp.dim2 = vp.dim2, main_vp.dim2
+                                
+                                main_vp.zoom, vp.zoom = vp.zoom, main_vp.zoom
+                                
+                            self.gui.text(f"  -> Zoom: {vp.zoom:.1e}")
 
             self.window.show()
     
@@ -266,6 +282,7 @@ class App:
     def save_state(self):
         s = self.states[self.func_idx]
         s.zooms =[vp.zoom for vp in self.viewports]
+        s.vp_axes =[(vp.dim1, vp.dim2) for vp in self.viewports]
         s.translations = self.translations.copy()
         s.rotations = self.rotations.copy()
         s.max_iter = self.max_iter
@@ -278,6 +295,11 @@ class App:
         s = self.states[self.func_idx]
         for vp, z in zip(self.viewports, s.zooms):
             vp.zoom = z
+            
+        for vp, axes in zip(self.viewports, s.vp_axes):
+            vp.dim1 = axes[0]
+            vp.dim2 = axes[1]
+        
         self.translations = s.translations.copy()
         self.rotations = s.rotations.copy()
         self.max_iter = s.max_iter
