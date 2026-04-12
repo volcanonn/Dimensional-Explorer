@@ -6,7 +6,7 @@ import collections
 import config
 import utils
 
-ti.init(arch=ti.vulkan, default_fp=ti.f32)
+ti.init(arch=ti.gpu, default_fp=ti.f32)
 
 DIM_NAMES =[]
 for i in range(config.MAX_DIMENSIONS):
@@ -51,8 +51,9 @@ class Viewport:
 
 class CameraState:
     def __init__(self, name):
-        self.zoom = 200.0
-        self.translations = [0.0] * config.MAX_DIMENSIONS
+        self.zooms =[200.0] * (config.MAX_DIMENSIONS // 2)
+        
+        self.translations =[0.0] * config.MAX_DIMENSIONS
         self.max_iter = 100
         self.color_freq = 0.05
 
@@ -69,12 +70,8 @@ class CameraState:
             self.use_f64 = False
             self.color_freq = 0.1
 
-        self.planes =[]
-        for i in range(self.active_dims):
-            for j in range(i + 1, self.active_dims):
-                self.planes.append((i, j))
-                
-        self.rotations = [0.0] * len(self.planes)
+        self.planes =[(i, j) for i in range(self.active_dims) for j in range(i + 1, self.active_dims)]
+        self.rotations =[0.0] * len(self.planes)
 
 @ti.data_oriented
 class App:
@@ -113,11 +110,12 @@ class App:
         self.viewports =[]
         self.hovered_vp_idx = 0
         
-        self.viewports.append(Viewport(0, 0, 1))
-        self.viewports.append(Viewport(1, 2, 3))
-        self.viewports.append(Viewport(2, 4, 5))
+        num_viewports = config.MAX_DIMENSIONS // 2
+        for i in range(num_viewports):
+            self.viewports.append(Viewport(i, i * 2, i * 2 + 1))
 
         self.load_state()
+
 
     def run(self):
         while self.window.running:
@@ -255,6 +253,7 @@ class App:
     
     def save_state(self):
         s = self.states[self.func_idx]
+        s.zooms =[vp.zoom for vp in self.viewports]
         s.translations = self.translations.copy()
         s.rotations = self.rotations.copy()
         s.max_iter = self.max_iter
@@ -264,6 +263,8 @@ class App:
 
     def load_state(self):
         s = self.states[self.func_idx]
+        for vp, z in zip(self.viewports, s.zooms):
+            vp.zoom = z
         self.translations = s.translations.copy()
         self.rotations = s.rotations.copy()
         self.max_iter = s.max_iter
@@ -313,8 +314,8 @@ class App:
         up = basis[active_vp.dim2]
 
         if self.hovered_vp_idx == 0:
-            base_accel = 5.0 / active_vp.zoom
-            friction = 0.90
+            base_accel = 2.0 / active_vp.zoom
+            friction = 0.85
             is_moving = False
 
             if self.window.is_pressed(ti.ui.SHIFT):
@@ -334,7 +335,7 @@ class App:
                 is_moving = True
 
             if is_moving:
-                self.momentum_mult = min(self.momentum_mult + 0.05, 4.0)
+                self.momentum_mult = min(self.momentum_mult + 0.02, 2.5)
             else:
                 self.momentum_mult = 1.0
 
