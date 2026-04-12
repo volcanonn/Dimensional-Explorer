@@ -311,11 +311,11 @@ class App:
 
     def handle_input(self, width, height, basis):
         mouse_x, mouse_y = self.window.get_cursor_pos()
-        mouse_ui_y = 1.0 - mouse_y
-
+        
         mx_px = mouse_x * width
         my_px = mouse_y * height
 
+        # Hit Detection
         if not self.is_dragging:
             self.hovered_vp_idx = 0
             for vp in reversed(self.viewports[1:]):
@@ -327,37 +327,33 @@ class App:
         right = basis[active_vp.dim1]
         up = basis[active_vp.dim2]
 
-        if self.hovered_vp_idx == 0:
-            base_accel = 2.0 / active_vp.zoom
-            friction = 0.85
-            is_moving = False
+        base_accel = 2.0 / active_vp.zoom
+        friction = 0.85
+        is_moving = False
 
-            if self.window.is_pressed(ti.ui.SHIFT):
-                base_accel *= 5.0
+        if self.window.is_pressed(ti.ui.SHIFT):
+            base_accel *= 5.0
 
-            if self.window.is_pressed('a'):
-                self.vel_x -= base_accel
-                is_moving = True
-            if self.window.is_pressed('d'):
-                self.vel_x += base_accel
-                is_moving = True
-            if self.window.is_pressed('w'):
-                self.vel_y += base_accel
-                is_moving = True
-            if self.window.is_pressed('s'):
-                self.vel_y -= base_accel
-                is_moving = True
+        if self.window.is_pressed('a'):
+            self.vel_x -= base_accel
+            is_moving = True
+        if self.window.is_pressed('d'):
+            self.vel_x += base_accel
+            is_moving = True
+        if self.window.is_pressed('w'):
+            self.vel_y += base_accel
+            is_moving = True
+        if self.window.is_pressed('s'):
+            self.vel_y -= base_accel
+            is_moving = True
 
-            if is_moving:
-                self.momentum_mult = min(self.momentum_mult + 0.02, 2.5)
-            else:
-                self.momentum_mult = 1.0
-
-            self.vel_x *= friction
-            self.vel_y *= friction
+        if is_moving:
+            self.momentum_mult = min(self.momentum_mult + 0.02, 2.5)
         else:
-            self.vel_x = 0.0
-            self.vel_y = 0.0
+            self.momentum_mult = 1.0
+
+        self.vel_x *= friction
+        self.vel_y *= friction
 
         total_dx = self.vel_x * self.momentum_mult
         total_dy = self.vel_y * self.momentum_mult
@@ -381,16 +377,12 @@ class App:
         zoom_out = self.window.is_pressed('q')
 
         if zoom_in or zoom_out:
-            mx_absolute = mouse_x * width
-            my_absolute = mouse_y * height
-
             if active_vp.idx > 0:
-                screen_x = mx_absolute - (active_vp.px_x + active_vp.px_w * 0.5)
-                # We invert the Y math for the mini viewports due to Taichi's coordinate system
-                screen_y = my_absolute - (height - active_vp.px_y - active_vp.px_h * 0.5)
+                screen_x = mx_px - (active_vp.px_x + active_vp.px_w * 0.5)
+                screen_y = my_px - (active_vp.px_y + active_vp.px_h * 0.5)
             else:
-                screen_x = mx_absolute - (width * 0.5)
-                screen_y = my_absolute - (height * 0.5)
+                screen_x = mx_px - (width * 0.5)
+                screen_y = my_px - (height * 0.5)
 
             math_x_before = screen_x / active_vp.zoom
             math_y_before = screen_y / active_vp.zoom
