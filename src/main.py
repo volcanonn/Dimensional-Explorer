@@ -144,18 +144,19 @@ class App:
 
             # Generate the Orthogonal N-D Transformation Matrix
             basis = self.get_nd_basis_matrix()
-            self.handle_input(width, height, basis)
-
 
             current_time = time.perf_counter()
             dt = current_time - self.last_time
             self.last_time = current_time
-            self.frame_times.append(dt)
             
+            self.frame_times.append(dt)
             avg_dt = sum(self.frame_times) / len(self.frame_times)
             fps = 1.0 / avg_dt if avg_dt > 0 else 0.0
 
-            ti.sync() 
+            # Pass the delta time here!
+            self.handle_input(width, height, basis, dt)
+
+            ti.sync()
             starttime = time.perf_counter_ns()
             
             origin_vec = config.vecMAX(self.translations)
@@ -331,7 +332,12 @@ class App:
 
         return basis
 
-    def handle_input(self, width, height, basis):
+    def handle_input(self, width, height, basis, dt):
+        # Cap dt to 0.1s so a lag spike doesn't teleport the camera
+        dt = min(dt, 0.1)
+        
+        dt_scale = dt * 60.0 # set baseline to 60
+
         mouse_x, mouse_y = self.window.get_cursor_pos()
         
         mx_px = mouse_x * width
@@ -349,8 +355,9 @@ class App:
         right = basis[active_vp.dim1]
         up = basis[active_vp.dim2]
 
-        base_accel = 2.0 / active_vp.zoom
-        friction = 0.85
+        base_accel = (2.0 / active_vp.zoom) * dt_scale
+        
+        friction = 0.85 ** dt_scale
         is_moving = False
 
         if self.window.is_pressed(ti.ui.SHIFT):
@@ -370,15 +377,15 @@ class App:
             is_moving = True
 
         if is_moving:
-            self.momentum_mult = min(self.momentum_mult + 0.02, 2.5)
+            self.momentum_mult = min(self.momentum_mult + (0.02 * dt_scale), 2.5)
         else:
             self.momentum_mult = 1.0
 
         self.vel_x *= friction
         self.vel_y *= friction
 
-        total_dx = self.vel_x * self.momentum_mult
-        total_dy = self.vel_y * self.momentum_mult
+        total_dx = self.vel_x * self.momentum_mult * dt_scale
+        total_dy = self.vel_y * self.momentum_mult * dt_scale
 
         if self.window.is_pressed(ti.ui.LMB):
             if self.is_dragging:
@@ -409,7 +416,7 @@ class App:
             math_x_before = screen_x / active_vp.zoom
             math_y_before = screen_y / active_vp.zoom
 
-            zoom_speed = 1.05
+            zoom_speed = 1.05 ** dt_scale
             
             if zoom_in:
                 active_vp.zoom *= zoom_speed
