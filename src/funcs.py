@@ -43,7 +43,7 @@ def conic_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.template(),
     z = pos_nd[2] if ti.static(N > 2) else zero
 
     cone_dist = ti.sqrt(x * x + y * y) - ti.abs(z)
-    glow = utils.smart_exp(-ti.abs(cone_dist) * (zero + 10.0 * color_freq), use_f64)
+    glow = utils.smart_math.smart_exp(-ti.abs(cone_dist) * (zero + 10.0 * color_freq), use_f64)
 
     return utils.apply_colormap(glow, colormap_idx)
 
@@ -85,7 +85,7 @@ def simple_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.templ
     x = pos_nd[0] if ti.static(N > 0) else zero
     y = pos_nd[1] if ti.static(N > 1) else zero
 
-    val = utils.smart_sin(x, use_f64) + utils.smart_cos(y, use_f64)
+    val = utils.smart_math.smart_sin(x, use_f64) + utils.smart_math.smart_cos(y, use_f64)
     t = ti.abs(val * (zero + color_freq * 2.0))
 
     return utils.apply_colormap(t - ti.floor(t), colormap_idx)
@@ -99,7 +99,7 @@ def radial_wave_core(pos_nd: ti.template(), color_freq: float, use_f64: ti.templ
     x = pos_nd[0] if ti.static(N > 0) else zero
     y = pos_nd[1] if ti.static(N > 1) else zero
 
-    val = utils.smart_sin(ti.sqrt(x * x + y * y), use_f64)
+    val = utils.smart_math.smart_sin(ti.sqrt(x * x + y * y), use_f64)
     t = ti.abs(val * (zero + color_freq * 5.0))
 
     return utils.apply_colormap(t - ti.floor(t), colormap_idx)

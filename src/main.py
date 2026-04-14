@@ -5,13 +5,13 @@ import collections
 
 import config
 import utils
-import numpy as np
+from numpy import float32 as npfloat32
 
 # performance issues for mandelbrot come from the viewports with exponents mostly
 # and how the exponent loop cant be unrolled because it doesnt know if its a integer
 # that gets down to 340us with half the screen on the big monitor
 
-DIM_NAMES =[]
+DIM_NAMES = []
 for i in range(config.MAX_DIMENSIONS):
     if i == 0:
         DIM_NAMES.append("X")
@@ -85,7 +85,7 @@ class CameraState:
 @ti.data_oriented
 class App:
     def __init__(self):
-        self.window = ti.ui.Window("Dynamic N-D Viewer", (1280, 720), vsync=True)
+        self.window = ti.ui.Window("Dimensional Explorer", (1280, 720), vsync=True)
         self.canvas = self.window.get_canvas()
         self.gui = self.window.get_gui()
 
@@ -104,7 +104,7 @@ class App:
         self.last_mouse_y = 0.0
 
         # Function Switcher Setup
-        self.functions =[
+        self.functions = [
             "Mandelbrot",
             "Conic Sections",
             "Voronoi",
@@ -120,7 +120,7 @@ class App:
 
         self.states = [CameraState(name) for name in self.functions]
         
-        self.viewports =[]
+        self.viewports = []
         self.hovered_vp_idx = 0
         
         num_viewports = config.MAX_DIMENSIONS // 2
@@ -187,7 +187,7 @@ class App:
                         )
                     else:
                         vec_type = config.vecMAX_f32
-                        vp_zoom = np.float32(vp.zoom)
+                        vp_zoom = npfloat32(vp.zoom)
                         
                         utils.nd_slice_f32(
                             vp.pixels,
@@ -306,7 +306,6 @@ class App:
             self.window.show()
     
     def smart_slider(self, label, value, min_val, max_val):
-        """Allows you to use UI sliders/text inputs without destroying 64-bit precision!"""
         new_val = self.gui.slider_float(label, value, min_val, max_val)
         if abs(new_val - value) > 1e-5:
             return new_val
@@ -314,8 +313,8 @@ class App:
     
     def save_state(self):
         s = self.states[self.func_idx]
-        s.zooms =[vp.zoom for vp in self.viewports]
-        s.vp_axes =[(vp.dim1, vp.dim2) for vp in self.viewports]
+        s.zooms = [vp.zoom for vp in self.viewports]
+        s.vp_axes = [(vp.dim1, vp.dim2) for vp in self.viewports]
         s.translations = self.translations.copy()
         s.rotations = self.rotations.copy()
         s.max_iter = self.max_iter
