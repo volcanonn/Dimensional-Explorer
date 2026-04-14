@@ -10,6 +10,7 @@ from numpy import float32 as npfloat32
 # performance issues for mandelbrot come from the viewports with exponents mostly
 # and how the exponent loop cant be unrolled because it doesnt know if its a integer
 # that gets down to 340us with half the screen on the big monitor
+# calc times can change if the gpu downclocks
 
 DIM_NAMES = []
 for i in range(config.MAX_DIMENSIONS):
@@ -158,6 +159,12 @@ class App:
             dt = current_time - self.last_time
             self.last_time = current_time
             
+            if len(self.frame_times) > 0:
+                current_avg_dt = sum(self.frame_times) / len(self.frame_times)
+                
+                if dt > current_avg_dt * 2.0 or dt < current_avg_dt * 0.5:
+                    self.frame_times.clear()
+                    
             self.frame_times.append(dt)
             avg_dt = sum(self.frame_times) / len(self.frame_times)
             fps = 1.0 / avg_dt if avg_dt > 0 else 0.0
@@ -203,8 +210,15 @@ class App:
                         )
 
             ti.sync()
+            endtime = time.perf_counter_ns() - starttime
 
-            self.calc_times.append(time.perf_counter_ns() - starttime)
+            if len(self.calc_times) > 0:
+                current_avg = sum(self.calc_times) / len(self.calc_times)
+                
+                if endtime > current_avg * 2.0 or endtime < current_avg * 0.5:
+                    self.calc_times.clear()
+
+            self.calc_times.append(endtime)
             avg_calc_time = sum(self.calc_times) / len(self.calc_times)
 
             for vp in self.viewports[1:]:
@@ -256,6 +270,10 @@ class App:
                     self.load_state()
                     for vp in self.viewports:
                         vp.zoom = 200.0
+                    
+                    self.vel_x = 0.0
+                    self.vel_y = 0.0
+                    self.momentum_mult = 1.0
 
             if self.active_dims > 0:
                 with self.gui.sub_window("N-D Translations", 0.02, 0.42, 0.25, 0.23):
