@@ -5,8 +5,7 @@ import collections
 
 import config
 import utils
-
-ti.init(arch=ti.gpu, default_fp=ti.f32)
+import numpy as np
 
 DIM_NAMES =[]
 for i in range(config.MAX_DIMENSIONS):
@@ -51,11 +50,9 @@ class Viewport:
 
 class CameraState:
     def __init__(self, name):
-        self.zooms =[200.0] * (config.MAX_DIMENSIONS // 2)
-
-        self.vp_axes =[(i * 2, i * 2 + 1) for i in range(config.MAX_DIMENSIONS // 2)]
-        
-        self.translations =[0.0] * config.MAX_DIMENSIONS
+        self.zooms = [200.0] * (config.MAX_DIMENSIONS // 2)
+        self.vp_axes = [(i * 2, i * 2 + 1) for i in range(config.MAX_DIMENSIONS // 2)]
+        self.translations = [0.0] * config.MAX_DIMENSIONS
         self.max_iter = 100
         self.color_freq = 0.05
         self.colormap_idx = 0
@@ -73,8 +70,12 @@ class CameraState:
             self.use_f64 = False
             self.color_freq = 0.1
 
-        self.planes =[(i, j) for i in range(self.active_dims) for j in range(i + 1, self.active_dims)]
-        self.rotations =[0.0] * len(self.planes)
+        self.planes = []
+        for i in range(self.active_dims):
+            for j in range(i + 1, self.active_dims):
+                self.planes.append((i, j))
+                
+        self.rotations = [0.0] * len(self.planes)
 
 @ti.data_oriented
 class App:
@@ -84,7 +85,7 @@ class App:
         self.gui = self.window.get_gui()
 
         self.frame_times = collections.deque(maxlen=60)
-        self.calc_times = collections.deque(maxlen=60)
+        self.calc_times = collections.deque(maxlen=120)
         self.last_time = time.perf_counter() 
         self.current_shape = (0, 0)
 
@@ -158,27 +159,45 @@ class App:
 
             ti.sync()
             starttime = time.perf_counter_ns()
-            
-            origin_vec = config.vecMAX(self.translations)
 
             for vp in self.viewports:
-                if vp.dim2 < self.active_dims:
-                    right_vec = config.vecMAX(basis[vp.dim1])
-                    up_vec = config.vecMAX(basis[vp.dim2])
+                if vp.idx > 0:
+                    continue
 
-                    utils.nd_slice(
-                        vp.pixels,
-                        origin_vec,
-                        right_vec,
-                        up_vec,
-                        vp.zoom,
-                        self.max_iter,
-                        self.color_freq,
-                        self.func_idx,
-                        self.use_f64,
-                        self.active_dims,
-                        self.colormap_idx
-                    )
+                if vp.dim2 < self.active_dims:
+                    
+                    if self.use_f64:
+                        vec_type = config.vecMAX_f64
+                        vp_zoom = float(vp.zoom)
+                        
+                        utils.nd_slice_f64(
+                            vp.pixels,
+                            vec_type(self.translations),
+                            vec_type(basis[vp.dim1]),
+                            vec_type(basis[vp.dim2]),
+                            vp_zoom,
+                            self.max_iter,
+                            self.color_freq,
+                            self.func_idx,
+                            self.active_dims,
+                            self.colormap_idx
+                        )
+                    else:
+                        vec_type = config.vecMAX_f32
+                        vp_zoom = np.float32(vp.zoom)
+                        
+                        utils.nd_slice_f32(
+                            vp.pixels,
+                            vec_type(self.translations),
+                            vec_type(basis[vp.dim1]),
+                            vec_type(basis[vp.dim2]),
+                            vp_zoom,
+                            self.max_iter,
+                            self.color_freq,
+                            self.func_idx,
+                            self.active_dims,
+                            self.colormap_idx
+                        )
 
             ti.sync()
             
@@ -216,7 +235,13 @@ class App:
                     self.save_state()
 
                 self.gui.text("")
-                self.use_f64 = self.gui.checkbox("64-bit Precision", self.use_f64)
+                
+                if config.SUPPORT_F64_BASE:
+                    mode_text = "Native" if config.SUPPORT_F64_TRIG else "Emulated"
+                    self.use_f64 = self.gui.checkbox(f"64-bit Precision ({mode_text})", self.use_f64)
+                else:
+                    self.gui.text("64-bit: HARDWARE UNAVAILABLE")
+                    self.use_f64 = False
 
                 if self.func_idx == 0:
                     self.max_iter = self.gui.slider_int("Max Iterations", self.max_iter, 10, 1000)
