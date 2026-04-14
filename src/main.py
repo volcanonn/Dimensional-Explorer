@@ -227,7 +227,7 @@ class App:
 
             self.canvas.set_image(self.viewports[0].pixels)
 
-            with self.gui.sub_window("Engine Stats", 0.02, 0.02, 0.3, 0.38):
+            with self.gui.sub_window("Engine Stats", 0.02, 0.02, 0.3, 0.47):
                 self.gui.text(f"Dimensions: {self.active_dims}D")
                 self.gui.text(f"FPS: {fps:.1f}")
                 self.gui.text(f"GPU Calc: {utils.format_time(avg_calc_time)}")
@@ -276,13 +276,13 @@ class App:
                     self.momentum_mult = 1.0
 
             if self.active_dims > 0:
-                with self.gui.sub_window("N-D Translations", 0.02, 0.42, 0.25, 0.23):
+                with self.gui.sub_window("N-D Translations", 0.02, 0.50, 0.25, 0.24):
                     for i in range(self.active_dims):
                         name = ["X", "Y", "Z", "W", "V", "U"][i] if i < 6 else f"D{i}"
                         self.translations[i] = self.smart_slider(f"Pos {name}", self.translations[i], -2.0, 2.0)
 
             if len(self.planes) > 0:
-                with self.gui.sub_window("N-D Rotations", 0.02, 0.67, 0.25, 0.22):
+                with self.gui.sub_window("N-D Rotations", 0.02, 0.75, 0.25, 0.22):
                     for i, (ax1, ax2) in enumerate(self.planes):
                         name1 = DIM_NAMES[ax1]
                         name2 = DIM_NAMES[ax2]
@@ -294,11 +294,11 @@ class App:
                             180.0
                         )
 
-            if self.active_dims > 2:
+            if self.active_dims >= 2:
                 num_mini_vps = (self.active_dims // 2) - 1
                 ui_height = 0.04 + 0.08 * num_mini_vps
                 
-                with self.gui.sub_window("Viewports", 0.02, 0.80, 0.25, ui_height):
+                with self.gui.sub_window("Viewports", 0.02, 0.98, 0.25, ui_height):
                     main_vp = self.viewports[0]
                     m_name1 = DIM_NAMES[main_vp.dim1]
                     m_name2 = DIM_NAMES[main_vp.dim2]
