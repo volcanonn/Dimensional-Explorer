@@ -7,6 +7,10 @@ import config
 import utils
 import numpy as np
 
+# performance issues for mandelbrot come from the viewports with exponents mostly
+# and how the exponent loop cant be unrolled because it doesnt know if its a integer
+# that gets down to 340us with half the screen on the big monitor
+
 DIM_NAMES =[]
 for i in range(config.MAX_DIMENSIONS):
     if i == 0:
@@ -31,6 +35,7 @@ class Viewport:
         self.dim1 = dim1
         self.dim2 = dim2
         self.zoom = 200.0
+        self.visible = True
 
         self.px_w = 256 if idx > 0 else 0
         self.px_h = 256 if idx > 0 else 0
@@ -139,9 +144,12 @@ class App:
             width, height = self.current_shape
             
             padding = 20
-            for i, vp in enumerate(self.viewports[1:]):
-                vp.px_x = width - vp.px_w - padding
-                vp.px_y = height - padding - (i + 1) * vp.px_h - (i * padding)
+            draw_idx = 0
+            for vp in self.viewports[1:]:
+                if vp.dim2 < self.active_dims and vp.visible:
+                    vp.px_x = width - vp.px_w - padding
+                    vp.px_y = height - padding - (draw_idx + 1) * vp.px_h - (draw_idx * padding)
+                    draw_idx += 1
 
             # Generate the Orthogonal N-D Transformation Matrix
             basis = self.get_nd_basis_matrix()
@@ -154,16 +162,13 @@ class App:
             avg_dt = sum(self.frame_times) / len(self.frame_times)
             fps = 1.0 / avg_dt if avg_dt > 0 else 0.0
 
-            # Pass the delta time here!
             self.handle_input(width, height, basis, dt)
 
             ti.sync()
             starttime = time.perf_counter_ns()
 
             for vp in self.viewports:
-
-                if vp.dim2 < self.active_dims:
-                    
+                if vp.dim2 < self.active_dims and vp.visible:
                     if self.use_f64:
                         vec_type = config.vecMAX_f64
                         vp_zoom = float(vp.zoom)
@@ -198,13 +203,13 @@ class App:
                         )
 
             ti.sync()
-            
-            for vp in self.viewports[1:]:
-                if vp.dim2 < self.active_dims:
-                    utils.blit_image(self.viewports[0].pixels, vp.pixels, vp.px_x, vp.px_y)
 
             self.calc_times.append(time.perf_counter_ns() - starttime)
             avg_calc_time = sum(self.calc_times) / len(self.calc_times)
+
+            for vp in self.viewports[1:]:
+                if vp.dim2 < self.active_dims and vp.visible:
+                    utils.blit_image(self.viewports[0].pixels, vp.pixels, vp.px_x, vp.px_y)
 
             self.canvas.set_image(self.viewports[0].pixels)
 
@@ -272,26 +277,30 @@ class App:
                         )
 
             if self.active_dims > 2:
-                ui_height = 0.06 + 0.05 * (self.active_dims // 2)
+                num_mini_vps = (self.active_dims // 2) - 1
+                ui_height = 0.04 + 0.08 * num_mini_vps
                 
-                with self.gui.sub_window("Viewport Swapper", 0.02, 0.82, 0.25, ui_height):
+                with self.gui.sub_window("Viewports", 0.02, 0.80, 0.25, ui_height):
                     main_vp = self.viewports[0]
                     m_name1 = DIM_NAMES[main_vp.dim1]
                     m_name2 = DIM_NAMES[main_vp.dim2]
-                    
-                    self.gui.text(f"Main [{m_name1}-{m_name2}] Z: {main_vp.zoom:.1e}")
+                    self.gui.text(f"Main [{m_name1}-{m_name2}] Zoom: {main_vp.zoom:.1e}")
                     
                     for vp in self.viewports[1:]:
                         if vp.dim2 < self.active_dims:
                             name1 = DIM_NAMES[vp.dim1]
                             name2 = DIM_NAMES[vp.dim2]
                             
-                            if self.gui.button(f"Swap [{name1}-{name2}] to Main"):
+                            self.gui.text("")
+                            
+                            vp.visible = self.gui.checkbox(f"Show [{name1}-{name2}] Plane", vp.visible)
+                            
+                            # The Swap Button
+                            if self.gui.button(f"  Swap [{name1}-{name2}] to Main"):
                                 main_vp.dim1, vp.dim1 = vp.dim1, main_vp.dim1
                                 main_vp.dim2, vp.dim2 = vp.dim2, main_vp.dim2
-                                
                                 main_vp.zoom, vp.zoom = vp.zoom, main_vp.zoom
-                                
+                            
                             self.gui.text(f"  -> Zoom: {vp.zoom:.1e}")
 
             self.window.show()
@@ -370,7 +379,7 @@ class App:
         if not self.is_dragging:
             self.hovered_vp_idx = 0
             for vp in reversed(self.viewports[1:]):
-                if vp.dim2 < self.active_dims and vp.contains_mouse(mx_px, my_px):
+                if vp.dim2 < self.active_dims and vp.visible and vp.contains_mouse(mx_px, my_px):
                     self.hovered_vp_idx = vp.idx
                     break
 
