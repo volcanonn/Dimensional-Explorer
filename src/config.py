@@ -22,7 +22,7 @@ else:
     try:
         @ti.kernel
         def probe_f64_base(val: ti.f64) -> ti.f64:
-            return val * 2.0
+            return val * ti.cast(2.0, ti.f64)
             
         probe_f64_base(1.0)
     except Exception:

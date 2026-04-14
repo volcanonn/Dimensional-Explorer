@@ -161,8 +161,6 @@ class App:
             starttime = time.perf_counter_ns()
 
             for vp in self.viewports:
-                if vp.idx > 0:
-                    continue
 
                 if vp.dim2 < self.active_dims:
                     
