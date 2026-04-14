@@ -71,6 +71,12 @@ class CameraState:
             self.active_dims = 3
             self.use_f64 = False
             self.color_freq = 0.5
+        elif name == "Burning Ship":
+            self.active_dims = 6
+            self.use_f64 = False
+            self.translations[4] = 2.0
+            self.colormap_idx = 2
+            self.color_freq = 0.01
         else:
             self.active_dims = 2
             self.use_f64 = False
@@ -107,16 +113,17 @@ class App:
         # Function Switcher Setup
         self.functions = [
             "Mandelbrot",
+            "Burning Ship",
             "Conic Sections",
             "Voronoi",
             "Simple Wave",
             "Radial Wave",
-            "Paraboloid"
+            "Paraboloid",
         ]
 
         self.func_idx = 0
 
-        self.colormaps = ["Heledron", "Psychedelic"]
+        self.colormaps = ["Heledron", "Psychedelic", "Armada", "Ghostly Ice", "Crimson Cyan-Fire", "Ocean Purple Waves", "Metallic Silk", "Toxic Green", "Nebula Fake"]
         self.colormap_idx = 0
 
         self.states = [CameraState(name) for name in self.functions]
@@ -260,7 +267,7 @@ class App:
                     self.gui.text("64-bit: HARDWARE UNAVAILABLE")
                     self.use_f64 = False
 
-                if self.func_idx == 0:
+                if self.func_idx in [0,1]:
                     self.max_iter = self.gui.slider_int("Max Iterations", self.max_iter, 10, 1000)
 
                 self.color_freq = self.gui.slider_float("Color Scale", self.color_freq, 0.001, 1.0)

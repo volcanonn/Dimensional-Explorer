@@ -45,11 +45,11 @@ def complex_pow(z, w, use_f64: ti.template()):
 
         result = temp
     else:
-        r = ti.sqrt(z[0] ** 2 + z[1] ** 2)
+        r2 = z.norm_sqr()
 
-        if r > 1e-15:
+        if r2 > 1e-15:
             theta = smart_math.smart_atan2(z[1], z[0], use_f64)
-            ln_r = smart_math.smart_log(r, use_f64)
+            ln_r = 0.5 * smart_math.smart_log(r2, use_f64)
             
             A = w[0] * ln_r - w[1] * theta
             B = w[0] * theta + w[1] * ln_r
@@ -78,5 +78,19 @@ def apply_colormap(t, colormap_idx: ti.template()):
         color = colormap.heledron(t)
     elif ti.static(colormap_idx == 1):
         color = colormap.psychedelic(t)
+    elif ti.static(colormap_idx == 2):
+        color = colormap.armada(t)
+    elif ti.static(colormap_idx == 3):
+        color = colormap.ghostly_ice(t)
+    elif ti.static(colormap_idx == 4):
+        color = colormap.crimson_cyan(t)
+    elif ti.static(colormap_idx == 5):
+        color = colormap.ocean_purple(t)
+    elif ti.static(colormap_idx == 6):
+        color = colormap.metallic_silk(t)
+    elif ti.static(colormap_idx == 7):
+        color = colormap.toxic_green(t)
+    elif ti.static(colormap_idx == 8):
+        color = colormap.nebula_fake(t)
         
     return color

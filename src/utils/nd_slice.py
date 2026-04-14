@@ -36,14 +36,16 @@ def process_pixel(
     if ti.static(func_idx == 0):
         color = mandelbrot_core(pos_nd, max_iter, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 1):
-        color = conic_core(pos_nd, color_freq, use_f64, colormap_idx)
+        color = burningship_core(pos_nd, max_iter, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 2):
-        color = voronoi_core(pos_nd, color_freq, use_f64, colormap_idx)
+        color = conic_core(pos_nd, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 3):
-        color = simple_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
+        color = voronoi_core(pos_nd, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 4):
-        color = radial_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
+        color = simple_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 5):
+        color = radial_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
+    elif ti.static(func_idx == 6):
         color = paraboloid_core(pos_nd, color_freq, use_f64, colormap_idx)
 
     # Crosshair rendering
@@ -51,7 +53,7 @@ def process_pixel(
                    (ti.abs(screen_y) < 6.0 and ti.abs(screen_x) < 1.0 and ti.abs(screen_y) > 2.0)
     
     if is_crosshair:
-        color = ti.Vector([1.0, 1.0, 1.0])
+        color = ti.cast(ti.Vector([1.0, 1.0, 1.0]), ti.f32)
 
     return color
 
