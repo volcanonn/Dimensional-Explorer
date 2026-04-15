@@ -47,6 +47,8 @@ def process_pixel(
         color = radial_wave_core(pos_nd, color_freq, use_f64, colormap_idx)
     elif ti.static(func_idx == 6):
         color = paraboloid_core(pos_nd, color_freq, use_f64, colormap_idx)
+    elif ti.static(func_idx == 7):
+        color = mandelbrot_testing_core(pos_nd, max_iter, color_freq, use_f64, colormap_idx)
 
     # Crosshair rendering
     is_crosshair = (ti.abs(screen_x) < 6.0 and ti.abs(screen_y) < 1.0 and ti.abs(screen_x) > 2.0) or \

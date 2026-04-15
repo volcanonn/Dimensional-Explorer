@@ -12,6 +12,8 @@ from numpy import float32 as npfloat32
 # that gets down to 340us with half the screen on the big monitor
 # calc times can change if the gpu downclocks
 
+debug = False
+
 DIM_NAMES = []
 for i in range(config.MAX_DIMENSIONS):
     if i == 0:
@@ -44,6 +46,7 @@ class Viewport:
         self.px_y = 0
 
         if idx > 0:
+            self.visible = not debug
             self.pixels = ti.Vector.field(n=3, dtype=ti.f32, shape=(self.px_w, self.px_h))
         else:
             self.pixels = None
@@ -67,6 +70,12 @@ class CameraState:
             self.active_dims = 6
             self.use_f64 = False
             self.translations[4] = 2.0
+            self.zooms[0] = 1000
+        elif name == "Mandelbrot Testing":
+            self.active_dims = 6
+            self.use_f64 = False
+            self.translations[4] = 2.0
+            self.zooms[0] = 1000
         elif name == "Conic Sections":
             self.active_dims = 3
             self.use_f64 = False
@@ -97,7 +106,7 @@ class App:
         self.gui = self.window.get_gui()
 
         self.frame_times = collections.deque(maxlen=60)
-        self.calc_times = collections.deque(maxlen=120)
+        self.calc_times = collections.deque(maxlen=600 if debug else 120)
         self.last_time = time.perf_counter() 
         self.current_shape = (0, 0)
 
@@ -119,6 +128,7 @@ class App:
             "Simple Wave",
             "Radial Wave",
             "Paraboloid",
+            "Mandelbrot Testing"
         ]
 
         self.func_idx = 0
@@ -219,11 +229,12 @@ class App:
             ti.sync()
             endtime = time.perf_counter_ns() - starttime
 
-            if len(self.calc_times) > 0:
-                current_avg = sum(self.calc_times) / len(self.calc_times)
-                
-                if endtime > current_avg * 2.0 or endtime < current_avg * 0.5:
-                    self.calc_times.clear()
+            if not debug:
+                if len(self.calc_times) > 0:
+                    current_avg = sum(self.calc_times) / len(self.calc_times)
+                    
+                    if endtime > current_avg * 2.0 or endtime < current_avg * 0.5:
+                        self.calc_times.clear()
 
             self.calc_times.append(endtime)
             avg_calc_time = sum(self.calc_times) / len(self.calc_times)
@@ -267,7 +278,7 @@ class App:
                     self.gui.text("64-bit: HARDWARE UNAVAILABLE")
                     self.use_f64 = False
 
-                if self.func_idx in [0,1]:
+                if self.func_idx in [0,1,7]:
                     self.max_iter = self.gui.slider_int("Max Iterations", self.max_iter, 10, 1000)
 
                 self.color_freq = self.gui.slider_float("Color Scale", self.color_freq, 0.001, 1.0)

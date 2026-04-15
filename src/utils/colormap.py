@@ -14,6 +14,36 @@ def psychedelic(t):
     return ti.cast(ti.Vector([r, g, b]), ti.f32)
 
 @ti.func
+def piecewise(t, palette: ti.template()):
+    t32 = ti.cast(t, ti.f32)
+    n = palette.n
+    
+    color = ti.Vector([palette[n - 1, 0], palette[n - 1, 1], palette[n - 1, 2]])
+    
+    if t32 <= palette[0, 3]:
+        color = ti.Vector([palette[0, 0], palette[0, 1], palette[0, 2]])
+    else:
+        for i in ti.static(range(n - 1)):
+            if t32 < palette[i + 1, 3]:
+                b0 = palette[i, 3]
+                b1 = palette[i + 1, 3]
+                
+                c0 = ti.Vector([palette[i, 0],     palette[i, 1],     palette[i, 2]])
+                c1 = ti.Vector([palette[i + 1, 0], palette[i + 1, 1], palette[i + 1, 2]])
+                
+                color = c0 + (c1 - c0) * (t32 - b0) / (b1 - b0)
+                break 
+    return color
+
+heledron_palette = ti.Matrix([
+    [0.0,           7.0 / 255.0,   100.0 / 255.0,  0.0],
+    [32.0 / 255.0,  107.0 / 255.0, 203.0 / 255.0,  0.16],
+    [237.0 / 255.0, 255.0 / 255.0, 255.0 / 255.0,  0.42],
+    [255.0 / 255.0, 170.0 / 255.0, 0.0,            0.6425],
+    [0.0,           0.0,           0.0,            0.8575]
+])
+
+@ti.func
 def heledron(t):
     t32 = ti.cast(t, ti.f32)
 
